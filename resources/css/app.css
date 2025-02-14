@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    @font-face {
+        font-family: 'Old English Text MT';
+        src: url('/fonts/old-english-text-mt/OldEnglishTextMT.ttf') format('ttf');
+    }
+}
