@@ -9,7 +9,11 @@ class AssessmentController extends Controller
 {
     public function generate(PersonalInfo $student)
     {
-        $pdf = Pdf::loadView('assessment', compact('student'));
+        $student->load('subjects');
+        $pdf = Pdf::loadView('assessment', [
+            'student' => $student,
+            'fullName' => $student->fullName()
+        ]);
         return $pdf->stream('student-assessment.pdf');
     }
-} 
+}

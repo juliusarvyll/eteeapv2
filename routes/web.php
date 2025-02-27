@@ -23,5 +23,7 @@ Route::get('/api/track-application', [ApplicationController::class, 'trackApplic
 
 Route::get('/assessment/{student}', [AssessmentController::class, 'generate'])->name('assessment.pdf');
 
+Route::get('/applicant/{record}/pdf', [ApplicationController::class, 'generateApplicantPdf'])
+    ->name('applicant.pdf');
 
 require __DIR__.'/auth.php';

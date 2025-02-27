@@ -24,6 +24,11 @@ use App\Notifications\ApplicationSubmitted;
 use App\Models\User;
 use App\Jobs\SendApplicationNotifications;
 use App\Events\ApplicantNotification;
+use Joaopaulolndev\FilamentPdfViewer\Infolists\Components\PdfViewerEntry;
+use Webklex\PDFMerger\Facades\PDFMergerFacade as PDFMerger;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class ApplicationController extends Controller
 {
@@ -124,7 +129,7 @@ class ApplicationController extends Controller
                 case 3: // Education
                     $validatedData = $request->validate([
                         'applicant_id' => 'required|exists:personal_infos,applicant_id',
-                        
+
                         // Elementary Education
                         'elementarySchool' => 'required|string|max:255',
                         'elementaryAddress' => 'required|string',
@@ -141,7 +146,8 @@ class ApplicationController extends Controller
                             }
                         ],
                         'hasElementaryDiploma' => 'boolean',
-                        'elementaryDiplomaFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                        'elementaryDiplomaFile' => 'nullable|array',
+                        'elementaryDiplomaFile.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
 
                         // PEPT
                         'hasPEPT' => 'boolean',
@@ -167,31 +173,32 @@ class ApplicationController extends Controller
                             }
                         ],
                         'highSchools.*.strand' => 'nullable|string|required_if:highSchools.*.type,Senior High School',
+                        'highSchools.*.hasDiplomaFile' => 'boolean',
+                        'highSchools.*.diplomaFile' => 'nullable|array',
+                        'highSchools.*.diplomaFile.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
 
                         // Post Secondary Education - optional
                         'postSecondary' => 'nullable|array',
-                        'postSecondary.*.program' => 'nullable|string',
-                        'postSecondary.*.institution' => 'nullable|string',
-                        'postSecondary.*.schoolYear' => 'nullable|string',
+                        'postSecondary.*.program' => 'required|string|max:255',
+                        'postSecondary.*.institution' => 'required|string|max:255',
+                        'postSecondary.*.schoolYear' => 'required|integer|min:1900|max:'.(date('Y')),
+                        'postSecondary.*.diplomaFile' => 'nullable|array',
+                        'postSecondary.*.diplomaFile.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
 
                         // Non-Formal Education - optional
-                        'nonFormalEducation' => 'nullable|array',
-                        'nonFormalEducation.*.title' => 'nullable|string',
-                        'nonFormalEducation.*.organization' => 'nullable|string',
-                        'nonFormalEducation.*.date' => 'nullable|string',
-                        'nonFormalEducation.*.certificate' => 'nullable|string',
-                        'nonFormalEducation.*.participation' => 'nullable|string',
+                        'nonFormal' => 'nullable|array',
+                        'nonFormal.*.title' => 'required|string|max:255',
+                        'nonFormal.*.organization' => 'required|string|max:255',
+                        'nonFormal.*.certificateFiles' => 'nullable|array',
+                        'nonFormal.*.certificateFiles.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
 
                         // Certifications - optional with integer year
                         'certifications' => 'nullable|array',
                         'certifications.*.title' => 'nullable|string',
-                        'certifications.*.agency' => 'nullable|string',
-                        'certifications.*.dateCertified' => [
-                            'nullable',
-                            'integer',
-                            'min:1900',
-                            'max:'.(date('Y'))
-                        ],
+                        'certifications.*.agency' => 'required|string|max:255',
+                        'certifications.*.dateCertified' => 'required|integer|min:1900|max:'.(date('Y')),
+                        'certifications.*.certificateFiles' => 'nullable|array',
+                        'certifications.*.certificateFiles.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
                         'certifications.*.rating' => 'nullable|string',
                         'certifications.*.file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
                     ]);
@@ -202,28 +209,74 @@ class ApplicationController extends Controller
 
                     // Handle file uploads with proper error handling
                     $files = [];
-                    $fileFields = [
-                        'elementaryDiplomaFile'
-                    ];
 
-                    foreach ($fileFields as $fileField) {
-                        if ($request->hasFile($fileField)) {
-                            try {
-                                $file = $request->file($fileField);
+                    // Process elementary diploma files
+                    if ($request->hasFile('elementaryDiplomaFile')) {
+                        $files['elementaryDiplomaFile'] = [];
+                        foreach ($request->file('elementaryDiplomaFile') as $file) {
+                            $path = $file->store('diplomas', 'public');
+                            $files['elementaryDiplomaFile'][] = $path;
+                        }
+                    }
+
+                    // Process high school diploma files
+                    foreach ($request->input('highSchools', []) as $index => $school) {
+                        if ($request->hasFile("highSchools.{$index}.diplomaFile")) {
+                            $files["highSchools.{$index}.diplomaFile"] = [];
+                            foreach ($request->file("highSchools.{$index}.diplomaFile") as $file) {
                                 $path = $file->store('diplomas', 'public');
-                                $files[$fileField] = $path;
-                            } catch (\Exception $e) {
-                                \Log::error("Failed to upload {$fileField}: " . $e->getMessage());
-                                throw new \Exception("Failed to upload {$fileField}");
+                                $files["highSchools.{$index}.diplomaFile"][] = $path;
                             }
+                        }
+                    }
+
+                    // Process post-secondary diploma files
+                    if (isset($validatedData['postSecondary'])) {
+                        foreach ($validatedData['postSecondary'] as $index => $postSecondary) {
+                            $postSecondaryFiles = [];
+                            if ($request->hasFile("postSecondary.{$index}.diplomaFile")) {
+                                foreach ($request->file("postSecondary.{$index}.diplomaFile") as $file) {
+                                    $path = $file->store('diplomas', 'public');
+                                    $postSecondaryFiles[] = $path;
+                                }
+                            }
+                            $validatedData['postSecondary'][$index]['diploma_files'] = $postSecondaryFiles;
+                        }
+                    }
+
+                    // Process non-formal certificates
+                    if (isset($validatedData['nonFormal'])) {
+                        foreach ($validatedData['nonFormal'] as $index => $nonFormal) {
+                            $certificateFiles = [];
+                            if ($request->hasFile("nonFormal.{$index}.certificateFiles")) {
+                                foreach ($request->file("nonFormal.{$index}.certificateFiles") as $file) {
+                                    $path = $file->store('certificates', 'public');
+                                    $certificateFiles[] = $path;
+                                }
+                            }
+                            $validatedData['nonFormal'][$index]['certificate_files'] = $certificateFiles;
+                        }
+                    }
+
+                    // Process certification certificates
+                    if (isset($validatedData['certifications'])) {
+                        foreach ($validatedData['certifications'] as $index => $certification) {
+                            $certificateFiles = [];
+                            if ($request->hasFile("certifications.{$index}.certificateFiles")) {
+                                foreach ($request->file("certifications.{$index}.certificateFiles") as $file) {
+                                    $path = $file->store('certifications', 'public');
+                                    $certificateFiles[] = $path;
+                                }
+                            }
+                            $validatedData['certifications'][$index]['certificate_files'] = $certificateFiles;
                         }
                     }
 
                     // Delete existing education records for this applicant
                     Education::where('applicant_id', $request->applicant_id)->delete();
 
-                    // Save Elementary
-                    Education::create([
+                    // Save Elementary Education
+                    $education = Education::create([
                         'applicant_id' => $request->applicant_id,
                         'type' => 'elementary',
                         'school_name' => $validatedData['elementarySchool'],
@@ -231,68 +284,66 @@ class ApplicationController extends Controller
                         'date_from' => (int)$validatedData['elementaryDateFrom'],
                         'date_to' => (int)$validatedData['elementaryDateTo'],
                         'has_diploma' => $validatedData['hasElementaryDiploma'] ?? false,
-                        'diploma_file' => isset($files['elementaryDiplomaFile']) ? $files['elementaryDiplomaFile'] : null,
+                        'diploma_files' => $files['elementaryDiplomaFile'] ?? null,
                     ]);
 
-                    // Save High Schools
+                    // Save High School Education
                     if (!($validatedData['hasPEPT'] ?? false)) {
-                        foreach ($validatedData['highSchools'] as $school) {
+                        foreach ($validatedData['highSchools'] as $index => $school) {
                             Education::create([
                                 'applicant_id' => $request->applicant_id,
-                                'type' => 'high_school',
+                                'type' => $school['type'],
                                 'school_name' => $school['name'],
                                 'address' => $school['address'],
-                                'school_type' => $school['type'],
                                 'date_from' => (int)$school['dateFrom'],
                                 'date_to' => (int)$school['dateTo'],
-                                'is_senior_high' => $school['type'] === 'Senior High School',
                                 'strand' => $school['type'] === 'Senior High School' ? $school['strand'] : null,
+                                'has_diploma' => $school['hasDiplomaFile'] ?? false,
+                                'diploma_files' => $files["highSchools.{$index}.diplomaFile"] ?? null,
                             ]);
                         }
                     }
 
-                    // Save Post Secondary
+                    // Save Post Secondary Education to specific table
                     if (isset($validatedData['postSecondary'])) {
                         foreach ($validatedData['postSecondary'] as $postSecondary) {
-                            Education::create([
-                                'applicant_id' => $request->applicant_id,
-                                'type' => 'post_secondary',
+                            PostSecondaryEducation::create([
+                                'education_id' => $education->id,
                                 'program' => $postSecondary['program'],
                                 'institution' => $postSecondary['institution'],
                                 'school_year' => $postSecondary['schoolYear'],
+                                'diploma_files' => $postSecondary['diploma_files'] ?? null,
                             ]);
                         }
                     }
 
                     // Save Non-Formal Education
-                    if (isset($validatedData['nonFormalEducation'])) {
-                        foreach ($validatedData['nonFormalEducation'] as $nonFormal) {
-                            Education::create([
-                                'applicant_id' => $request->applicant_id,
-                                'type' => 'non_formal',
+                    if (isset($validatedData['nonFormal'])) {
+                        foreach ($validatedData['nonFormal'] as $nonFormal) {
+                            NonFormalEducation::create([
+                                'education_id' => $education->id,
                                 'title' => $nonFormal['title'],
                                 'organization' => $nonFormal['organization'],
-                                'certificate' => $nonFormal['certificate'],
-                                'participation' => $nonFormal['participation'],
+                                'certificate_files' => $nonFormal['certificate_files'] ?? null,
+                                'participation' => $nonFormal['participation'] ?? null,
                             ]);
                         }
                     }
 
                     // Save Certifications
                     if (isset($validatedData['certifications'])) {
-                        foreach ($validatedData['certifications'] as $cert) {
-                            Education::create([
-                                'applicant_id' => $request->applicant_id,
-                                'type' => 'certification',
-                                'title' => $cert['title'],
-                                'agency' => $cert['agency'],
-                                'date_certified' => isset($cert['dateCertified']) ? (int)$cert['dateCertified'] : null,
-                                'rating' => $cert['rating'],
+                        foreach ($validatedData['certifications'] as $certification) {
+                            Certification::create([
+                                'education_id' => $education->id,
+                                'agency' => $certification['agency'],
+                                'date_certified' => $certification['dateCertified'],
+                                'rating' => $certification['rating'] ?? null,
+                                'certificate_files' => $certification['certificate_files'] ?? null,
                             ]);
                         }
                     }
 
-                    // PEPT if applicable
+                    // Save PEPT if applicable
                     if ($validatedData['hasPEPT'] ?? false) {
                         Education::create([
                             'applicant_id' => $request->applicant_id,
@@ -637,7 +688,7 @@ class ApplicationController extends Controller
 
             DB::transaction(function () use ($personalInfo) {
                 $personalInfo->update(['status' => 'pending']);
-                
+
                 $admins = User::all();
                 Notification::send($admins, new ApplicationSubmitted(
                     "{$personalInfo->firstName} {$personalInfo->lastName}",
@@ -746,5 +797,199 @@ class ApplicationController extends Controller
                 'message' => 'Failed to retrieve application status'
             ], 500);
         }
+    }
+
+    public function generateApplicantPdf($applicantId)
+    {
+        try {
+            $record = PersonalInfo::where('applicant_id', $applicantId)
+                ->with([
+                    'learningObjective',
+                    'education',
+                    'workExperiences',
+                    'academicAwards',
+                    'communityAwards',
+                    'workAwards',
+                    'creativeWorks',
+                    'lifelongLearning',
+                    'essay'
+                ])
+                ->firstOrFail();
+
+            $record->load([
+                'lifelongLearning',
+                'workExperiences',
+                'academicAwards',
+                'communityAwards',
+                'workAwards',
+                'education',
+                'learningObjective',
+                'creativeWorks',
+                'essay'
+            ]);
+
+            $infoPdf = Pdf::loadView('pdfs.personal-info', ['record' => $record])
+                ->setPaper('a4', 'portrait')
+                ->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled' => true,
+                    'defaultFont' => 'Poppins',
+                    'chroot' => public_path(),
+                ]);
+
+            $merger = PDFMerger::init();
+            $merger->addString($infoPdf->output(), 'all');
+
+            $addDocumentToPdf = function($path, $documentType) use ($merger) {
+                if (empty($path)) return;
+
+                $fullPath = Storage::disk('public')->path($path);
+                if (!file_exists($fullPath)) {
+                    \Log::warning("Skipping nonexistent {$documentType}: {$fullPath}");
+                    return;
+                }
+
+                // Check if the file is a valid PDF or an image
+                $mimeType = mime_content_type($fullPath);
+                if ($mimeType === 'application/pdf') {
+                    try {
+                        $merger->addString(file_get_contents($fullPath), 'all');
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to merge PDF {$documentType}: " . $e->getMessage());
+                    }
+                } elseif (in_array($mimeType, ['image/png', 'image/jpeg'])) {
+                    // Convert image to PDF
+                    $pdfPath = $this->convertImageToPdf($fullPath);
+                    if ($pdfPath) {
+                        try {
+                            $merger->addString(file_get_contents($pdfPath), 'all');
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to merge converted image {$documentType}: " . $e->getMessage());
+                        }
+                    }
+                } else {
+                    \Log::warning("Skipping unsupported file type {$documentType}: {$fullPath}");
+                }
+            };
+
+            \Log::info("Starting PDF generation for applicant ID: {$applicantId}");
+
+            // Add documents (same logic as original)
+            if ($record->document) {
+                \Log::info("Adding personal document for applicant ID: {$applicantId}");
+                $addDocumentToPdf($record->document, 'Personal Document');
+            }
+
+            foreach ($record->education as $edu) {
+                $diplomaFiles = data_get($edu, 'diploma_files');
+                if ($diplomaFiles) {
+                    foreach ($diplomaFiles as $diplomaFile) {
+                        $documentType = match(data_get($edu, 'type')) {
+                            'elementary' => 'Elementary Diploma',
+                            'high_school' => 'High School Diploma',
+                            'post_secondary' => 'Post Secondary Diploma',
+                            default => 'Diploma'
+                        };
+                        \Log::info("Adding {$documentType} for applicant ID: {$applicantId}");
+                        $addDocumentToPdf($diplomaFile, $documentType);
+                    }
+                }
+
+                if (data_get($edu, 'type') === 'non_formal') {
+                    \Log::info("Adding Non-Formal Certificate for applicant ID: {$applicantId}");
+                    $addDocumentToPdf(data_get($edu, 'certificate'), 'Non-Formal Certificate');
+                }
+            }
+
+            foreach ($record->workExperiences as $exp) {
+                if (!empty($exp['documents'])) {
+                    $documents = is_array($exp['documents']) ? $exp['documents'] : [$exp['documents']];
+                    foreach ($documents as $doc) {
+                        \Log::info("Adding Work Experience Document for applicant ID: {$applicantId}");
+                        $addDocumentToPdf($doc, 'Work Experience Document');
+                    }
+                }
+            }
+
+            // Add award documents
+            foreach ([
+                'academicAwards' => 'Academic Award',
+                'communityAwards' => 'Community Award',
+                'workAwards' => 'Work Award'
+            ] as $collection => $label) {
+                foreach ($record->$collection as $award) {
+                    if (!empty($award['document'])) {
+                        \Log::info("Adding {$label} for applicant ID: {$applicantId}");
+                        $addDocumentToPdf($award['document'], $label);
+                    }
+                }
+            }
+
+            \Log::info("Merging PDF documents for applicant ID: {$applicantId}");
+            $merger->merge();
+            $content = $merger->output();
+
+            \Log::info("PDF generation completed successfully for applicant ID: {$applicantId}");
+
+            return response()->stream(
+                fn () => print($content),
+                200,
+                [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="applicant-' . $record->applicant_id . '.pdf"'
+                ]
+            );
+
+        } catch (\Exception $e) {
+            \Log::error("PDF Generation failed for applicant ID: {$applicantId}. Error: " . $e->getMessage());
+            abort(500, 'Failed to generate PDF: ' . $e->getMessage());
+        }
+    }
+
+    private function convertImageToPdf($imagePath)
+    {
+        // Initialize Dompdf
+        $options = new Options();
+        $options->set('defaultFont', 'Arial');
+        $dompdf = new Dompdf($options);
+
+        // Create a blank image using GD
+        $image = null;
+        if (mime_content_type($imagePath) === 'image/png') {
+            $image = imagecreatefrompng($imagePath);
+        } elseif (mime_content_type($imagePath) === 'image/jpeg') {
+            $image = imagecreatefromjpeg($imagePath);
+        }
+
+        if ($image) {
+            // Get image dimensions
+            $width = imagesx($image);
+            $height = imagesy($image);
+
+            // Create HTML content with the image
+            $html = '<html><body>';
+            $html .= '<img src="data:image/png;base64,' . base64_encode(file_get_contents($imagePath)) . '" style="width:100%; height:auto;" />';
+            $html .= '</body></html>';
+
+            // Load HTML content
+            $dompdf->loadHtml($html);
+
+            // Set paper size and orientation
+            $dompdf->setPaper('A4', 'portrait');
+
+            // Render the PDF
+            $dompdf->render();
+
+            // Save the PDF to a file
+            $pdfPath = str_replace(['.png', '.jpg', '.jpeg'], '.pdf', $imagePath);
+            file_put_contents($pdfPath, $dompdf->output());
+
+            // Free up memory
+            imagedestroy($image);
+
+            return $pdfPath;
+        }
+
+        return null;
     }
 }

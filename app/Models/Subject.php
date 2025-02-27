@@ -13,11 +13,13 @@ class Subject extends Model
         'applicant_id',
         'course_name',
         'subject_name',
-        'grade'
+        'grade',
+        'units',
+        'schedule'
     ];
 
     public function personalInfo()
     {
         return $this->belongsTo(PersonalInfo::class);
     }
-} 
+}

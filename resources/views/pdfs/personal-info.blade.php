@@ -10,7 +10,7 @@
             font-weight: normal;
             font-style: normal;
         }
-        
+
         @font-face {
             font-family: 'Poppins';
             src: url('{{ public_path('fonts/Poppins/Poppins-Bold.ttf') }}') format('truetype');
@@ -24,7 +24,7 @@
             font-weight: bold;
             font-style: normal;
         }
-        
+
         body {
             font-family: 'Poppins', sans-serif;
             line-height: 1.2;
@@ -92,12 +92,12 @@
             display: inline-block;
             margin-right: 10px;
         }
-        
+
         .field:after {
             content: " ";
             margin: 0 3px;
         }
-        
+
         .field:last-child:after {
             content: none;
         }
@@ -135,7 +135,7 @@
         <div class="header-content">
             <img class="logo" src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('images/SPUP-BANNER-FOOTER.png'))) }}" alt="SPUP Logo">
         </div>
-        <div class="document-title">Applicant Information</div>
+        <div class="document-title">ETEEAP Applicant Information</div>
     </div>
 
     <div class="section">
@@ -378,7 +378,7 @@
                 <span class="label">Period:</span>
                 {{ $work->dateFrom }} - {{ $work->dateTo }}
             </div>
-            
+
             @if($work->employment_type === 'employed')
             <div class="field">
                 <span class="label">Employment Status:</span>
@@ -512,7 +512,7 @@
                 $groupedLearning = $record->lifelongLearning->groupBy('type');
                 error_log('Grouped Learning: ' . print_r($groupedLearning->toArray(), true));
             @endphp
-            
+
             @foreach(['hobby', 'skill', 'work', 'volunteer', 'travel'] as $type)
                 @if($groupedLearning->has($type))
                 <div class="field-group">

@@ -1,49 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Student Assessment</title>
+    <title>Unofficial Student Assessment</title>
     <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            line-height: 1.2;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+        }
+
         .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #000;
-            padding-bottom: 10px;
-        }
-        .logo {
-            height: 80px;
-            margin-bottom: 10px;
-        }
-        .student-info {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-        }
-        .subject-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .subject-table th, .subject-table td {
-            border: 1px solid #000;
-            padding: 8px;
             text-align: left;
+            font-weight: bold;
+            font-size: 20px;
+            color: #006937;
+            margin-bottom: 15px;
         }
+
+        .sub-header {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .details-table, .details-table th, .details-table td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+
+        .details-table {
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .details-table tr:first-child th:first-child {
+            border-top-left-radius: 7px;
+        }
+
+        .details-table tr:first-child th:last-child {
+            border-top-right-radius: 7px;
+        }
+
+        .details-table tr:last-child td:first-child {
+            border-bottom-left-radius: 7px;
+        }
+
+        .details-table tr:last-child td:last-child {
+            border-bottom-right-radius: 7px;
+        }
+
         .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #000;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ccc;
+        }
+
+        .total-row {
+            background-color: #f3f4f6;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <img src="{{ storage_path('app/public/images/spup-logo.png') }}" class="logo" alt="School Logo">
-        <h2>Saint Paul University Philippines</h2>
-        <h3>Student Assessment Report</h3>
+        <img src="{{ public_path('images/spup-logo.png') }}" style="height: 40px; margin-bottom: 5px;" alt="School Logo">
+        <div class="sub-header">
+            St. Paul University Philippines<br>
+        </div>
     </div>
 
     <div class="student-info">
-        <p><strong>Name:</strong> {{ $student->fullName() }}</p>
+        <table class="details-table">
+            <tr>
+                <th colspan="4" style="text-align: center; background: #f3f4f6;">Student Information</th>
+            </tr>
+            <tr>
+                <td width="15%"><strong>Name:</strong></td>
+                <td colspan="3">
+                    {{ $student->firstName }}
+                    @if($student->middleName) {{ $student->middleName }} @endif
+                    {{ $student->lastName }}
+                    @if($student->suffix) {{ $student->suffix }} @endif
+                </td>
+            </tr>
+        </table>
         <p><strong>Student ID:</strong> {{ $student->applicant_id }}</p>
         @if($student->subjects->isNotEmpty())
         <p><strong>Program:</strong> {{ $student->subjects->first()->course_name }}</p>
@@ -53,36 +98,32 @@
         <p><strong>Assessment Date:</strong> {{ now()->format('F d, Y') }}</p>
     </div>
 
-    <table class="subject-table">
-        <thead>
-            <tr>
-                <th>Subject Code</th>
-                <th>Subject Name</th>
-                <th>Units</th>
-                <th>Schedule</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($student->subjects as $subject)
-            <tr>
-                <td>{{ strtoupper(substr($subject->subject_name, 0, 3)) }}-{{ str_pad($loop->iteration, 3, '0', STR_PAD_LEFT) }}</td>
-                <td>{{ $subject->subject_name }}</td>
-                <td>3</td>
-                <td>MWF 8:00-9:00 AM</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <table class="details-table">
+        <tr>
+            <th colspan="4" style="text-align: center; background: #f3f4f6;">Subject Details</th>
+        </tr>
+        <tr>
+            <th>Subject Code</th>
+            <th>Subject Name</th>
+            <th>Units</th>
+            <th>Schedule</th>
+        </tr>
+        @foreach($student->subjects as $subject)
+        <tr>
+            <td>{{ strtoupper(substr($subject->subject_name, 0, 3)) }}-{{ str_pad($loop->iteration, 3, '0', STR_PAD_LEFT) }}</td>
+            <td>{{ $subject->subject_name }}</td>
+            <td>{{ $subject->units }}</td>
+            <td>{{ $subject->schedule }}</td>
+        </tr>
+        @endforeach
 
-    <div class="footer">
-        <p><strong>Assessor's Comments:</strong></p>
-        <p>_________________________________________________________</p>
-        <p style="margin-top: 30px;">
-            <strong>Assessor's Signature:</strong> ___________________________
-            <span style="float: right;">
-                <strong>Date:</strong> ___________________________
-            </span>
-        </p>
-    </div>
+        @if($student->subjects->isNotEmpty())
+        <tr class="total-row">
+            <td colspan="2" style="text-align: right;"><strong>Total Units:</strong></td>
+            <td>{{ $student->subjects->sum('units') }}</td>
+            <td></td>
+        </tr>
+        @endif
+    </table>
 </body>
-</html> 
+</html>

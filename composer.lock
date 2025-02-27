@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "359e4f8ae348c112b18e37260dbdd8e5",
+    "content-hash": "e1bbe1e6875daec3c8b50b5076632c93",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -427,6 +427,73 @@
                 }
             ],
             "time": "2024-02-09T16:56:22+00:00"
+        },
+        {
+            "name": "codedge/laravel-fpdf",
+            "version": "1.12.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/codedge/laravel-fpdf.git",
+                "reference": "d1e6bff5b4e5589a7d778445aefe062bc1f3f53d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/codedge/laravel-fpdf/zipball/d1e6bff5b4e5589a7d778445aefe062bc1f3f53d",
+                "reference": "d1e6bff5b4e5589a7d778445aefe062bc1f3f53d",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^10.0 || ^11.0",
+                "php": "~8.3 || ~8.4"
+            },
+            "require-dev": {
+                "ergebnis/composer-normalize": "^2.39",
+                "orchestra/testbench": "^8.0 || ^9.0",
+                "phpunit/phpunit": "^10.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Fpdf": "Codedge\\Fpdf\\Facades\\Fpdf"
+                    },
+                    "providers": [
+                        "Codedge\\Fpdf\\FpdfServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Codedge\\Fpdf\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Holger Lösken",
+                    "email": "holger.loesken@codedge.de"
+                }
+            ],
+            "description": "Laravel package to include Fpdf. It ships with Fpdf 1.86.",
+            "keywords": [
+                "fpdf",
+                "laravel",
+                "pdf"
+            ],
+            "support": {
+                "issues": "https://github.com/codedge/laravel-fpdf/issues",
+                "source": "https://github.com/codedge/laravel-fpdf"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/codedge",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-01-11T12:50:46+00:00"
         },
         {
             "name": "danharrin/date-format-converter",

@@ -2,21 +2,23 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
-use Filament\Http\Middleware\DisableBladeIconComponents;
-use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
+use Filament\Widgets;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Illuminate\Routing\Middleware\SubstituteBindings;
+use App\Filament\Pages\Notifications;
+use Filament\Http\Middleware\Authenticate;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Filament\Http\Middleware\AuthenticateSession;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Joaopaulolndev\FilamentEditProfile\FilamentEditProfilePlugin;
 
 class AppPanelProvider extends PanelProvider
 {
@@ -26,18 +28,21 @@ class AppPanelProvider extends PanelProvider
             ->id('assessor')
             ->path('assessor')
             ->login()
+            ->brandLogo(asset('images/SPUPLogo.png'))
+            ->brandLogoHeight('50px')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Green,
             ])
+
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+                Notifications::class,
             ])
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\\Filament\\App\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                \App\Filament\Widgets\UniversityInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -53,6 +58,17 @@ class AppPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])
+            ->plugins([
+                FilamentEditProfilePlugin::make()
+                ->slug('my-profile')
+                ->setTitle('My Profile')
+                ->setNavigationLabel('My Profile')
+                ->setIcon('heroicon-o-user')
+                ->setSort(10)
+                ->canAccess(true)
+                ->shouldRegisterNavigation(true)
+                ->shouldShowBrowserSessionsForm(true)
             ]);
     }
 }

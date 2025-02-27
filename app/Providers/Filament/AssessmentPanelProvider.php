@@ -11,39 +11,34 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
-use App\Filament\Pages\Notifications;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Joaopaulolndev\FilamentEditProfile\FilamentEditProfilePlugin;
 
-class AdminPanelProvider extends PanelProvider
+class AssessmentPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
+            ->id('assessment')
+            ->path('assessment')
             ->login()
-            ->brandLogo(asset('images/SPUPLogo.png'))
-            ->brandLogoHeight('50px')
+            ->authGuard('web')
             ->colors([
-                'primary' => Color::Green,
+                'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverResources(in: app_path('Filament/Assessment/Resources'), for: 'App\\Filament\\Assessment\\Resources')
+            ->discoverPages(in: app_path('Filament/Assessment/Pages'), for: 'App\\Filament\\Assessment\\Pages')
             ->pages([
                 Pages\Dashboard::class,
-                Notifications::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Assessment/Widgets'), for: 'App\\Filament\\Assessment\\Widgets')
             ->widgets([
-                Widgets\StatsOverviewWidget::class,
-                \App\Filament\Widgets\UniversityInfoWidget::class,
+                Widgets\AccountWidget::class,
+                Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -55,21 +50,9 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                \App\Http\Middleware\RedirectByRoleMiddleware::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])
-            ->plugins([
-                FilamentEditProfilePlugin::make()
-                ->slug('my-profile')
-                ->setTitle('My Profile')
-                ->setNavigationLabel('My Profile')
-                ->setIcon('heroicon-o-user')
-                ->setSort(10)
-                ->canAccess(true)
-                ->shouldRegisterNavigation(true)
-                ->shouldShowBrowserSessionsForm(true)
             ]);
     }
 }

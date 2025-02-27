@@ -61,7 +61,7 @@ export default function MultiStepForm() {
         otherCostPayment: '',
         completionTimeline: '',
 
-        // Step 3 - Education
+        // Step 3 - Education - Fix structure to match EducationStep.jsx
         elementarySchool: '',
         elementaryAddress: '',
         elementaryDateFrom: '',
@@ -69,41 +69,25 @@ export default function MultiStepForm() {
         hasElementaryDiploma: false,
         elementaryDiplomaFile: null,
 
-        secondaryEducationType: 'regular',
         hasPEPT: false,
         peptYear: '',
         peptGrade: '',
 
+        // Array fields should be initialized as empty arrays
         highSchools: [{
             name: '',
             address: '',
             type: '',
             dateFrom: '',
-            dateTo: ''
+            dateTo: '',
+            strand: '',
+            hasDiplomaFile: false,
+            diplomaFile: null
         }],
+        postSecondary: [],
+        nonFormalEducation: [],
+        certifications: [],
 
-        hasPostSecondaryDiploma: false,
-        postSecondaryDiplomaFile: null,
-        postSecondary: [{
-            program: '',
-            institution: '',
-            schoolYear: ''
-        }],
-
-        nonFormalEducation: [{
-            title: '',
-            organization: '',
-            date: '',
-            certificate: '',
-            participation: ''
-        }],
-
-        certifications: [{
-            title: '',
-            agency: '',
-            dateCertified: '',
-            rating: ''
-        }],
         workExperiences: [],
         academicAwards: [{
             title: '',
@@ -235,14 +219,14 @@ export default function MultiStepForm() {
             setErrors({});
         } catch (error) {
             console.error('Raw validation errors:', error.response?.data?.errors);
-            
+
             if (error.response?.data?.errors) {
                 const transformedErrors = {};
                 Object.entries(error.response.data.errors).forEach(([key, value]) => {
                     // For creative works, keep the original key format
                     transformedErrors[key] = Array.isArray(value) ? value[0] : value;
                 });
-                
+
                 setErrors(transformedErrors);
                 console.log('Setting errors:', transformedErrors);
             }
@@ -309,23 +293,25 @@ export default function MultiStepForm() {
 
                 // Append basic fields
                 educationFormData.append('applicant_id', formData.applicant_id);
-                
+
                 // Elementary Education - Parse years as integers
                 educationFormData.append('elementarySchool', formData.elementarySchool);
                 educationFormData.append('elementaryAddress', formData.elementaryAddress);
-                educationFormData.append('elementaryDateFrom', parseInt(formData.elementaryDateFrom) || '');
-                educationFormData.append('elementaryDateTo', parseInt(formData.elementaryDateTo) || '');
+                educationFormData.append('elementaryDateFrom', formData.elementaryDateFrom);
+                educationFormData.append('elementaryDateTo', formData.elementaryDateTo);
                 educationFormData.append('hasElementaryDiploma', formData.hasElementaryDiploma ? '1' : '0');
-                
-                if (formData.elementaryDiplomaFile instanceof File) {
-                    educationFormData.append('elementaryDiplomaFile', formData.elementaryDiplomaFile);
+
+                // Handle elementary diploma files
+                if (formData.elementaryDiplomaFile) {
+                    Array.from(formData.elementaryDiplomaFile).forEach((file) => {
+                        educationFormData.append('elementaryDiplomaFile[]', file);
+                    });
                 }
 
-                // Secondary Education
+                // PEPT handling
                 educationFormData.append('hasPEPT', formData.hasPEPT ? '1' : '0');
-                
                 if (formData.hasPEPT) {
-                    educationFormData.append('peptYear', parseInt(formData.peptYear) || '');
+                    educationFormData.append('peptYear', formData.peptYear);
                     educationFormData.append('peptGrade', formData.peptGrade);
                 } else {
                     // High Schools array
@@ -333,11 +319,16 @@ export default function MultiStepForm() {
                         educationFormData.append(`highSchools[${index}][name]`, school.name);
                         educationFormData.append(`highSchools[${index}][address]`, school.address);
                         educationFormData.append(`highSchools[${index}][type]`, school.type);
-                        educationFormData.append(`highSchools[${index}][dateFrom]`, parseInt(school.dateFrom) || '');
-                        educationFormData.append(`highSchools[${index}][dateTo]`, parseInt(school.dateTo) || '');
-                        
-                        if (school.type === 'Senior High School') {
-                            educationFormData.append(`highSchools[${index}][strand]`, school.strand);
+                        educationFormData.append(`highSchools[${index}][dateFrom]`, school.dateFrom);
+                        educationFormData.append(`highSchools[${index}][dateTo]`, school.dateTo);
+                        educationFormData.append(`highSchools[${index}][strand]`, school.strand);
+                        educationFormData.append(`highSchools[${index}][hasDiplomaFile]`, school.hasDiplomaFile ? '1' : '0');
+
+                        // Handle high school diploma files
+                        if (school.diplomaFile) {
+                            Array.from(school.diplomaFile).forEach((file) => {
+                                educationFormData.append(`highSchools[${index}][diplomaFile][]`, file);
+                            });
                         }
                     });
                 }
@@ -347,6 +338,13 @@ export default function MultiStepForm() {
                     educationFormData.append(`postSecondary[${index}][program]`, education.program);
                     educationFormData.append(`postSecondary[${index}][institution]`, education.institution);
                     educationFormData.append(`postSecondary[${index}][schoolYear]`, education.schoolYear);
+
+                    // Handle diploma files
+                    if (education.diplomaFile) {
+                        Array.from(education.diplomaFile).forEach((file) => {
+                            educationFormData.append(`postSecondary[${index}][diplomaFile][]`, file);
+                        });
+                    }
                 });
 
                 // Non-Formal Education
@@ -364,7 +362,7 @@ export default function MultiStepForm() {
                     educationFormData.append(`certifications[${index}][agency]`, cert.agency);
                     educationFormData.append(`certifications[${index}][dateCertified]`, parseInt(cert.dateCertified) || '');
                     educationFormData.append(`certifications[${index}][rating]`, cert.rating);
-                    
+
                     if (cert.file instanceof File) {
                         educationFormData.append(`certifications[${index}][file]`, cert.file);
                     }
@@ -413,7 +411,7 @@ export default function MultiStepForm() {
             case 5: // Honors & Awards
                 const honorsFormData = new FormData();
                 honorsFormData.append('applicant_id', formData.applicant_id);
-                
+
                 // Academic Awards
                 formData.academicAwards.forEach((award, index) => {
                     honorsFormData.append(`academicAwards[${index}][title]`, award.title);
@@ -695,7 +693,7 @@ export default function MultiStepForm() {
                                             ))}
                                         </div>
                                         {/* Progress Line */}
-                                        <div className="mt-4 hidden md:block">
+                                        <div className="hidden mt-4 md:block">
                                             <div className="relative">
                                                 <div className="absolute left-0 top-1/2 h-0.5 w-full bg-gray-200"></div>
                                                 <div
@@ -709,7 +707,7 @@ export default function MultiStepForm() {
                                     <form onSubmit={handleSubmit}>
                                         {renderStep()}
 
-                                        <div className="mt-6 flex justify-between">
+                                        <div className="flex justify-between mt-6">
                                             {currentStep > 1 && (
                                                 <SecondaryButton
                                                     type="button"

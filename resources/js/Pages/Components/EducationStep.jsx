@@ -23,7 +23,7 @@ export default function EducationStep({
 
                     <div className="space-y-4">
                         <p className="text-sm text-gray-600">1.1 What is the name and address of the elementary school you attended?</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <InputLabel htmlFor="elementarySchool" value="Name of School" required />
                                 <TextInput
@@ -52,7 +52,7 @@ export default function EducationStep({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <InputLabel htmlFor="elementaryDateFrom" value="Year Started" required />
                                 <TextInput
@@ -122,7 +122,7 @@ export default function EducationStep({
 
                         {formData.hasElementaryDiploma && (
                             <div className="mt-4">
-                                <InputLabel htmlFor="elementaryDiplomaFile" value="Upload Elementary Diploma" required />
+                                <InputLabel htmlFor="elementaryDiplomaFile" value="Upload Elementary Diploma(s)" required />
                                 <input
                                     type="file"
                                     id="elementaryDiplomaFile"
@@ -131,19 +131,30 @@ export default function EducationStep({
                                         handleInputChange({
                                             target: {
                                                 name: 'elementaryDiplomaFile',
-                                                value: e.target.files[0]
+                                                value: Array.from(e.target.files)
                                             }
                                         });
                                     }}
+                                    multiple
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     className={`mt-1 block w-full ${errors.elementaryDiplomaFile ? 'border-red-500' : ''}`}
                                 />
-                                <p className="text-sm text-gray-500 mt-1">Accepted formats: PDF, JPG, PNG (max 2MB)</p>
+                                <p className="mt-1 text-sm text-gray-500">You can upload multiple files if needed</p>
                                 {errors.elementaryDiplomaFile && (
                                     <InputError message={errors.elementaryDiplomaFile[0]} className="mt-2" />
                                 )}
                             </div>
                         )}
+
+                        <div>
+                            <InputLabel htmlFor="elementaryType" value="Education Type" required />
+                            <input
+                                type="hidden"
+                                id="elementaryType"
+                                name="elementaryType"
+                                value="elementary"
+                            />
+                        </div>
                     </div>
                 </section>
 
@@ -215,9 +226,9 @@ export default function EducationStep({
                         {!formData.hasPEPT && (
                             <div className="mt-4">
                                 <p className="text-sm text-gray-600">2.1 Provide your high school information:</p>
-                                {formData.highSchools.map((school, index) => (
-                                    <div key={index} className="border p-4 rounded-lg space-y-4">
-                                        <div className="flex justify-between items-center">
+                                {(formData.highSchools || []).map((school, index) => (
+                                    <div key={index} className="p-4 space-y-4 border rounded-lg">
+                                        <div className="flex items-center justify-between">
                                             <h4 className="font-medium">High School {index + 1}</h4>
                                             {index > 0 && (
                                                 <button
@@ -229,7 +240,7 @@ export default function EducationStep({
                                                 </button>
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <div>
                                                 <InputLabel value="Name of School" required />
                                                 <TextInput
@@ -257,10 +268,10 @@ export default function EducationStep({
                                             <div>
                                                 <InputLabel value="Type of School" required />
                                                 <select
-                                                    name="type"
+                                                    name={`highSchools.${index}.type`}
                                                     value={school.type}
                                                     onChange={(e) => handleArrayFieldChange('highSchools', index, 'type', e.target.value)}
-                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                 >
                                                     <option value="">Select Type</option>
                                                     <option value="Junior High School">Junior High School</option>
@@ -273,10 +284,10 @@ export default function EducationStep({
                                                 <div>
                                                     <InputLabel value="Strand" required />
                                                     <select
-                                                        name="strand"
+                                                        name={`highSchools.${index}.strand`}
                                                         value={school.strand}
                                                         onChange={(e) => handleArrayFieldChange('highSchools', index, 'strand', e.target.value)}
-                                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                        className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                     >
                                                         <option value="">Select Strand</option>
                                                         <option value="STEM">STEM (Science, Technology, Engineering, and Mathematics)</option>
@@ -290,12 +301,12 @@ export default function EducationStep({
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <div>
                                                 <InputLabel value="Year Started" required />
                                                 <TextInput
                                                     type="number"
-                                                    name="dateFrom"
+                                                    name={`highSchools.${index}.dateFrom`}
                                                     value={school.dateFrom || ''}
                                                     min="1900"
                                                     max={new Date().getFullYear()}
@@ -311,8 +322,8 @@ export default function EducationStep({
                                                 <InputLabel value="Year Completed" required />
                                                 <TextInput
                                                     type="number"
-                                                    name="dateTo"
-                                                    value={school.dateTo}
+                                                    name={`highSchools.${index}.dateTo`}
+                                                    value={school.dateTo || ''}
                                                     min="1900"
                                                     max={new Date().getFullYear()}
                                                     placeholder="YYYY"
@@ -324,56 +335,51 @@ export default function EducationStep({
                                                 )}
                                             </div>
                                         </div>
-                                        <div>
+                                        {/* Diploma Upload Section */}
+                                        <div className="mt-4 space-y-4">
                                             <div className="flex items-center space-x-2">
                                                 <input
                                                     type="checkbox"
-                                                    id="hasHighSchoolDiploma"
-                                                    name="hasHighSchoolDiploma"
-                                                    checked={Boolean(formData.hasHighSchoolDiploma)}
-                                                    onChange={(e) => {
-                                                        handleInputChange({
-                                                            target: {
-                                                                name: 'hasHighSchoolDiploma',
-                                                                value: e.target.checked ? '1' : '0',
-                                                                type: 'checkbox',
-                                                                checked: e.target.checked
-                                                            }
-                                                        });
-                                                    }}
-                                                    className={`${errors.hasHighSchoolDiploma ? 'border-red-500' : ''}`}
+                                                    checked={school.hasDiplomaFile}
+                                                    onChange={(e) => handleArrayFieldChange(
+                                                        'highSchools',
+                                                        index,
+                                                        'hasDiplomaFile',
+                                                        e.target.checked
+                                                    )}
+                                                    className={`${errors[`highSchools.${index}.hasDiplomaFile`] ? 'border-red-500' : ''}`}
                                                 />
-                                                <InputLabel htmlFor="hasHighSchoolDiploma" value="Do you have your high school diploma?" required />
+                                                <InputLabel
+                                                    value="Do you have a high school diploma for this school?"
+                                                    className="text-sm font-medium"
+                                                />
                                             </div>
-                                            {errors.hasHighSchoolDiploma && (
-                                                <InputError message={errors.hasHighSchoolDiploma[0]} className="mt-2" />
+
+                                            {school.hasDiplomaFile && (
+                                                <div>
+                                                    <InputLabel value="Upload High School Diploma(s)" required />
+                                                    <input
+                                                        type="file"
+                                                        name={`highSchools.${index}.diplomaFile`}
+                                                        onChange={(e) => handleArrayFieldChange(
+                                                            'highSchools',
+                                                            index,
+                                                            'diplomaFile',
+                                                            Array.from(e.target.files)
+                                                        )}
+                                                        multiple
+                                                        accept=".pdf,.jpg,.jpeg,.png"
+                                                        className={`block w-full mt-1 ${errors[`highSchools.${index}.diplomaFile`] ? 'border-red-500' : ''}`}
+                                                    />
+                                                    <p className="mt-1 text-sm text-gray-500">
+                                                        You can upload multiple files if needed
+                                                    </p>
+                                                    {errors[`highSchools.${index}.diplomaFile`] && (
+                                                        <InputError message={errors[`highSchools.${index}.diplomaFile`][0]} className="mt-2" />
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
-
-                                        {formData.hasHighSchoolDiploma && (
-                                            <div className="mt-4">
-                                                <InputLabel htmlFor="highSchoolDiplomaFile" value="Upload High School Diploma" required />
-                                                <input
-                                                    type="file"
-                                                    id="highSchoolDiplomaFile"
-                                                    name="highSchoolDiplomaFile"
-                                                    onChange={(e) => {
-                                                        handleInputChange({
-                                                            target: {
-                                                                name: 'highSchoolDiplomaFile',
-                                                                value: e.target.files[0]
-                                                            }
-                                                        });
-                                                    }}
-                                                    accept=".pdf,.jpg,.jpeg,.png"
-                                                    className={`mt-1 block w-full ${errors.highSchoolDiplomaFile ? 'border-red-500' : ''}`}
-                                                />
-                                                <p className="text-sm text-gray-500 mt-1">Accepted formats: PDF, JPG, PNG (max 2MB)</p>
-                                                {errors.highSchoolDiplomaFile && (
-                                                    <InputError message={errors.highSchoolDiplomaFile[0]} className="mt-2" />
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
                                 ))}
                                 <PrimaryButton
@@ -384,7 +390,9 @@ export default function EducationStep({
                                         type: '',
                                         dateFrom: '',
                                         dateTo: '',
-                                        strand: ''
+                                        strand: '',
+                                        hasDiplomaFile: false,
+                                        diplomaFile: []
                                     })}
                                 >
                                     Add Another High School
@@ -455,7 +463,7 @@ export default function EducationStep({
                                         accept=".pdf,.jpg,.jpeg,.png"
                                         className={`mt-1 block w-full ${errors.peptCertificateFile ? 'border-red-500' : ''}`}
                                     />
-                                    <p className="text-sm text-gray-500 mt-1">Accepted formats: PDF, JPG, PNG (max 2MB)</p>
+                                    <p className="mt-1 text-sm text-gray-500">Accepted formats: PDF, JPG, PNG (max 2MB)</p>
                                     {errors.peptCertificateFile && (
                                         <InputError message={errors.peptCertificateFile[0]} className="mt-2" />
                                     )}
@@ -510,12 +518,7 @@ export default function EducationStep({
                                 }}
                                 multiple
                                 accept=".pdf,.jpg,.jpeg,.png"
-                                className="mt-1 block w-full text-sm text-gray-500
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-md file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-blue-50 file:text-blue-700
-                                    hover:file:bg-blue-100"
+                                className="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
                             <p className="mt-1 text-sm text-gray-500">You can select multiple files if you have more than one diploma</p>
                             {errors.postSecondaryDiplomaFile && (
@@ -526,9 +529,9 @@ export default function EducationStep({
 
                     <p className="text-sm text-gray-600">4.2 Provide details about any post-secondary courses or degree programs:</p>
 
-                    {formData.postSecondary.map((education, index) => (
-                        <div key={index} className="border p-4 rounded-lg space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(formData.postSecondary || []).map((education, index) => (
+                        <div key={index} className="p-4 space-y-4 border rounded-lg">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div>
                                     <InputLabel value="Course/Degree Program" />
                                     <TextInput
@@ -579,6 +582,25 @@ export default function EducationStep({
                                     Remove Entry
                                 </button>
                             )}
+                            <div className="mt-4">
+                                <InputLabel value="Upload Diploma(s)" />
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => handleArrayFieldChange(
+                                        'postSecondary',
+                                        index,
+                                        'diplomaFile',
+                                        Array.from(e.target.files)
+                                    )}
+                                    className="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">You can upload multiple diploma files</p>
+                                {errors[`postSecondary.${index}.diplomaFile`] && (
+                                    <InputError message={errors[`postSecondary.${index}.diplomaFile`][0]} />
+                                )}
+                            </div>
                         </div>
                     ))}
                     <PrimaryButton
@@ -602,9 +624,9 @@ export default function EducationStep({
                     such as skills development or values orientation.
                 </p>
 
-                {formData.nonFormalEducation.map((training, index) => (
-                    <div key={index} className="border p-4 rounded-lg space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(formData.nonFormalEducation || []).map((training, index) => (
+                    <div key={index} className="p-4 space-y-4 border rounded-lg">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <InputLabel value="Title of Training Program" />
                                 <TextInput
@@ -676,6 +698,31 @@ export default function EducationStep({
                                 Remove Entry
                             </button>
                         )}
+                        <div className="mt-4">
+                            <InputLabel value="Upload Certificates" required />
+                            <input
+                                type="file"
+                                multiple
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => handleArrayFieldChange(
+                                    'nonFormal',
+                                    index,
+                                    'certificateFiles',
+                                    Array.from(e.target.files)
+                                )}
+                                className="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                            <p className="mt-1 text-sm text-gray-500">You can upload multiple files</p>
+                            {errors[`nonFormal.${index}.certificateFiles`] && (
+                                <InputError message={errors[`nonFormal.${index}.certificateFiles`][0]} />
+                            )}
+                            {/* Show uploaded file names */}
+                            {training.certificateFiles?.map((file, fileIndex) => (
+                                <div key={fileIndex} className="text-sm text-gray-600">
+                                    {file.name || file}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ))}
                 <PrimaryButton
@@ -699,9 +746,9 @@ export default function EducationStep({
                     Provide detailed information about certification exams taken for vocational or other skills.
                 </p>
 
-                {formData.certifications.map((cert, index) => (
-                    <div key={index} className="border p-4 rounded-lg space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(formData.certifications || []).map((cert, index) => (
+                    <div key={index} className="p-4 space-y-4 border rounded-lg">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <InputLabel value="Title of Certification" />
                                 <TextInput
@@ -756,25 +803,29 @@ export default function EducationStep({
                             </div>
                         </div>
                         <div>
-                            <InputLabel value="Upload Certificate" />
+                            <InputLabel value="Upload Certificates" required />
                             <input
                                 type="file"
-                                name={`certificationFile-${index}`}
-                                onChange={(e) => {
-                                    handleArrayFieldChange('certifications', index, 'file', e.target.files[0]);
-                                }}
+                                multiple
                                 accept=".pdf,.jpg,.jpeg,.png"
-                                className="mt-1 block w-full text-sm text-gray-500
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-md file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-blue-50 file:text-blue-700
-                                    hover:file:bg-blue-100"
+                                onChange={(e) => handleArrayFieldChange(
+                                    'certifications',
+                                    index,
+                                    'certificateFiles',
+                                    Array.from(e.target.files)
+                                )}
+                                className="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
-                            <p className="text-sm text-gray-500 mt-1">Accepted formats: PDF, JPG, PNG (max 2MB)</p>
-                            {errors[`certifications.${index}.file`] && (
-                                <InputError message={errors[`certifications.${index}.file`][0]} className="mt-2" />
+                            <p className="mt-1 text-sm text-gray-500">You can upload multiple files</p>
+                            {errors[`certifications.${index}.certificateFiles`] && (
+                                <InputError message={errors[`certifications.${index}.certificateFiles`][0]} />
                             )}
+                            {/* Show uploaded file names */}
+                            {cert.certificateFiles?.map((file, fileIndex) => (
+                                <div key={fileIndex} className="text-sm text-gray-600">
+                                    {file.name || file}
+                                </div>
+                            ))}
                         </div>
                         {formData.certifications.length > 1 && (
                             <button
@@ -794,7 +845,7 @@ export default function EducationStep({
                         agency: '',
                         dateCertified: '',
                         rating: '',
-                        file: null
+                        certificateFiles: []
                     })}
                 >
                     Add Another Certification

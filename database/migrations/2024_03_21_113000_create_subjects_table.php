@@ -12,6 +12,8 @@ return new class extends Migration {
             $table->string('applicant_id');
             $table->string('course_name');
             $table->string('subject_name');
+            $table->integer('units');
+            $table->string('schedule');
             $table->timestamps();
 
             $table->foreign('applicant_id')
@@ -25,4 +27,4 @@ return new class extends Migration {
     {
         Schema::dropIfExists('subjects');
     }
-}; 
+};

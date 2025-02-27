@@ -6,38 +6,38 @@ use Illuminate\Database\Eloquent\Model;
 
 class Education extends Model
 {
+    protected $table = 'educations';
     protected $fillable = [
         'applicant_id',
         'type', // 'elementary', 'high_school', 'post_secondary', 'non_formal', 'certification'
-        
+
         // Elementary & Common Fields
         'school_name',
         'address',
         'date_from',
         'date_to',
         'has_diploma',
-        'diploma_file',
-        
+        'diploma_files',
+
         // High School Specific
-        'school_type', // For high school types
-        'is_senior_high',
+        'type', // For high school types
         'strand',
-        
+
         // PEPT Specific
         'pept_year',
         'pept_grade',
-        
+
         // Post Secondary Specific
         'program',
         'institution',
         'school_year',
-        
+
         // Non-Formal Specific
         'title',
         'organization',
         'certificate',
         'participation',
-        
+
         // Certification Specific
         'agency',
         'date_certified',
@@ -51,7 +51,8 @@ class Education extends Model
         'date_from' => 'integer',
         'date_to' => 'integer',
         'pept_year' => 'integer',
-        'date_certified' => 'integer'
+        'date_certified' => 'integer',
+        'diploma_files' => 'array'
     ];
 
     // Define valid education types
@@ -138,4 +139,15 @@ class Education extends Model
     {
         return $query->where('type', 'high_school')->where('is_senior_high', false);
     }
-} 
+
+    // Define the relationship with Certificate using applicant_id
+    public function certificates()
+    {
+        return $this->hasMany(Certificate::class, 'applicant_id', 'applicant_id');
+    }
+
+    public function postSecondaryEducations()
+    {
+        return $this->hasMany(PostSecondaryEducation::class);
+    }
+}
