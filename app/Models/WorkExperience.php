@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class WorkExperience extends Model
 {
@@ -34,6 +35,8 @@ class WorkExperience extends Model
         'dateTo' => 'integer'
     ];
 
+    protected $appends = ['documents_url'];
+
     // Mutator for dateFrom
     public function setDateFromAttribute($value)
     {
@@ -46,8 +49,18 @@ class WorkExperience extends Model
         $this->attributes['dateTo'] = is_numeric($value) ? (int)$value : null;
     }
 
+    // Accessor for documents URL
+    public function getDocumentsUrlAttribute()
+    {
+        if (!$this->documents) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->documents);
+    }
+
     public function personalInfo(): BelongsTo
     {
         return $this->belongsTo(PersonalInfo::class, 'applicant_id', 'applicant_id');
     }
-} 
+}

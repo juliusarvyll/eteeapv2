@@ -16,8 +16,9 @@ class LoginResponse extends BaseLoginResponse
         }
 
         if ($user->roles === 'assessor') {
-            return redirect()->to(Dashboard::getUrl(panel: 'assessor'));
+            return redirect()->to(Dashboard::getUrl(panel: 'assessment'));
         }
+
         if ($user->roles === 'bao') {
             return redirect()->to(Dashboard::getUrl(panel: 'bao'));
         }

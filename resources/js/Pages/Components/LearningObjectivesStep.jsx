@@ -69,6 +69,22 @@ export default function LearningObjectivesStep({ formData, errors, handleInputCh
                 )}
             </div>
 
+            {/* Overseas Applicant Accreditation Plans */}
+            <div>
+                <InputLabel htmlFor="overseasAccreditationPlan" value="For overseas applicants, describe how you plan to obtain accreditation/equivalency. (e.g. when you plan to come to the Philippines)" />
+                <TextArea
+                    id="overseasPlan"
+                    name="overseasPlan"
+                    value={formData.overseasPlan}
+                    className={`mt-1 block w-full ${errors.overseasPlan ? 'error-field border-red-500' : ''}`}
+                    onChange={handleInputChange}
+                    rows={4}
+                />
+                {errors.overseasPlan && (
+                    <InputError message={errors.overseasPlan} className="mt-2" />
+                )}
+            </div>
+
             {/* Time Commitment */}
             <div>
                 <InputLabel value="How much time can you commit to your studies?" required />

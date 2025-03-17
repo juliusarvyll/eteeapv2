@@ -65,5 +65,5 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
         }
         return true;
     }
-    
+
 }

@@ -25,7 +25,6 @@ class AssessmentPanelProvider extends PanelProvider
         return $panel
             ->id('assessment')
             ->path('assessment')
-            ->login()
             ->authGuard('web')
             ->colors([
                 'primary' => Color::Amber,

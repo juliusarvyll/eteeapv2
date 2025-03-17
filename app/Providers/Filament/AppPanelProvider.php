@@ -27,7 +27,6 @@ class AppPanelProvider extends PanelProvider
         return $panel
             ->id('assessor')
             ->path('assessor')
-            ->login()
             ->brandLogo(asset('images/SPUPLogo.png'))
             ->brandLogoHeight('50px')
             ->colors([

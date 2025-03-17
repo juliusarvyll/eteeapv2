@@ -59,6 +59,7 @@ class ApplicationController extends Controller
                         'firstName' => 'required|string|max:255',
                         'middleName' => 'nullable|string|max:255',
                         'lastName' => 'required|string|max:255',
+                        'suffix' => 'nullable|string|max:255',
                         'address' => 'required|string',
                         'email' => 'required|email|max:255',
                         'phoneNumber' => 'required|string|max:50',
@@ -383,7 +384,7 @@ class ApplicationController extends Controller
 
                     // Only create records if not "no_employment"
                     if ($validatedData['employment_type'] !== 'no_employment') {
-                        foreach ($request->workExperiences as $experience) {
+                        foreach ($request->workExperiences as $index => $experience) {
                             $workExperience = new WorkExperience([
                                 'applicant_id' => $request->applicant_id,
                                 'employment_type' => $validatedData['employment_type'],
@@ -404,9 +405,10 @@ class ApplicationController extends Controller
                                 'reference3_contact' => $experience['reference3_contact'] ?? null
                             ]);
 
-                            // Handle document upload
-                            if (isset($experience['documents']) && $experience['documents'] instanceof UploadedFile) {
-                                $path = $experience['documents']->store('work-documents', 'public');
+                            // Handle document upload - updated for proper file checking
+                            if ($request->hasFile("workExperiences.{$index}.documents")) {
+                                $file = $request->file("workExperiences.{$index}.documents");
+                                $path = $file->store('work-documents', 'public');
                                 $workExperience->documents = $path;
                             }
 

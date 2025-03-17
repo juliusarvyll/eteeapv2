@@ -400,7 +400,7 @@ export default function MultiStepForm() {
                         }
                     }
 
-                    // Handle file upload
+                    // Handle file upload - ensure we're using the correct field name
                     if (experience.documents instanceof File) {
                         workExperienceFormData.append(`workExperiences[${index}][documents]`, experience.documents);
                     }

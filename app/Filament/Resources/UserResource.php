@@ -40,6 +40,7 @@ class UserResource extends Resource
                     ->options([
                         'admin' => 'Admin',
                         'assessor' => 'Assessor',
+                        'bao' => 'Bao',
                     ])
                     ->required(),
                 Forms\Components\FileUpload::make('avatar_url')
@@ -63,6 +64,7 @@ class UserResource extends Resource
                     ->color(fn (string $state): string => match ($state) {
                         'admin' => 'success',
                         'assessor' => 'warning',
+                        'bao' => 'info',
                     }),
                 Tables\Columns\ImageColumn::make('avatar_url')
                     ->label('Avatar')
@@ -92,4 +94,4 @@ class UserResource extends Resource
             'view' => \App\Filament\Resources\UserResource\Pages\ViewUser::route('/{record}'),
         ];
     }
-} 
+}

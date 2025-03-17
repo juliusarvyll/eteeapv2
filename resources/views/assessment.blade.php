@@ -12,7 +12,7 @@
         }
 
         .header {
-            text-align: left;
+            text-align: center;
             font-weight: bold;
             font-size: 20px;
             color: #006937;
@@ -22,6 +22,7 @@
         .sub-header {
             font-size: 14px;
             margin-bottom: 20px;
+            text-align: center;
         }
 
         .details-table, .details-table th, .details-table td {
@@ -68,7 +69,7 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ public_path('images/spup-logo.png') }}" style="height: 40px; margin-bottom: 5px;" alt="School Logo">
+        <img src="{{ public_path('images/spup-logo.png') }}" style="height: 40px; margin-bottom: 5px; display: block; margin-left: auto; margin-right: auto;" alt="School Logo">
         <div class="sub-header">
             St. Paul University Philippines<br>
         </div>

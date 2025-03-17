@@ -11,10 +11,16 @@ use Filament\Tables\Table;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ImageEntry;
+use Illuminate\Contracts\View\View;
 
 class ApplicantResource extends Resource
 {
     protected static ?string $model = PersonalInfo::class;
+
+    protected static ?string $navigationGroup = 'Applicant Management';
+    protected static ?string $navigationLabel = 'Applicants';
+
+
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -60,8 +66,30 @@ class ApplicantResource extends Resource
                 Tables\Columns\TextColumn::make('lastName')
                     ->label('Last Name')
                     ->searchable(),
+
+                // Add a column to show subjects count
+                Tables\Columns\TextColumn::make('subjects_count')
+                    ->label('Subjects')
+                    ->counts('subjects')
+                    ->badge(),
             ])
             ->actions([
+                // Add a view subjects action
+                Tables\Actions\Action::make('viewSubjects')
+                    ->label('View Subjects')
+                    ->icon('heroicon-o-academic-cap')
+                    ->modalHeading(fn (PersonalInfo $record) => "Subjects for {$record->firstName} {$record->lastName}")
+                    ->modalContent(function (PersonalInfo $record): View {
+                        $subjects = $record->subjects;
+
+                        return view('filament.tables.expandable-subjects', [
+                            'subjects' => $subjects,
+                            'courseName' => $subjects->first()?->course_name ?? 'No course assigned',
+                            'totalUnits' => $subjects->sum('units'),
+                        ]);
+                    })
+                    ->visible(fn (PersonalInfo $record) => $record->subjects->count() > 0),
+
                 Tables\Actions\Action::make('generate_pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
@@ -125,9 +153,8 @@ class ApplicantResource extends Resource
                                 ->required()
                                 ->label('Course Name')
                                 ->default($existingCourse)
-                                ->disabled($existingCourse !== null)
                                 ->helperText($existingCourse
-                                    ? 'Course is already set and cannot be changed.'
+                                    ? 'You can update the course name for all subjects.'
                                     : 'Enter the course name for this student.'),
                             Forms\Components\Repeater::make('subjects')
                                 ->schema([
@@ -171,8 +198,16 @@ class ApplicantResource extends Resource
                         ];
                     })
                     ->action(function (array $data, $record) {
-                        // Get existing course or use the one from the form
-                        $courseName = $record->subjects->first()?->course_name ?? $data['course_name'];
+                        // Get course name from form input
+                        $courseName = $data['course_name'];
+
+                        // If course name has changed and there are existing subjects, update them
+                        $existingCourse = $record->subjects->first()?->course_name;
+                        if ($existingCourse && $existingCourse !== $courseName) {
+                            $record->subjects()->update([
+                                'course_name' => $courseName
+                            ]);
+                        }
 
                         foreach ($data['subjects'] as $subjectData) {
                             // Format days
