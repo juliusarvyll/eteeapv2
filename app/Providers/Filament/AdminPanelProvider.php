@@ -12,6 +12,9 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use App\Filament\Pages\Notifications;
+use App\Filament\Pages\ApplicationDashboard;
+use App\Filament\Pages\ApplicationReports;
+use App\Filament\Widgets\PriorityAlertsWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -38,11 +41,14 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Pages\Dashboard::class,
                 Notifications::class,
+                ApplicationDashboard::class,
+                ApplicationReports::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\StatsOverviewWidget::class,
                 \App\Filament\Widgets\UniversityInfoWidget::class,
+                PriorityAlertsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

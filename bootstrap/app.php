@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Console\Commands\SendApplicationReminderEmails;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,4 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    ->withSchedule(function ($schedule) {
+        // Schedule the reminder email command to run daily at 8 AM
+        $schedule->command('app:send-application-reminders')
+                 ->dailyAt('08:00')
+                 ->appendOutputTo(storage_path('logs/reminders.log'));
+    })
+    ->create();

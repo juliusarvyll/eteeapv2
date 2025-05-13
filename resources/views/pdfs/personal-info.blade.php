@@ -4,29 +4,9 @@
     <meta charset="utf-8">
     <title>Applicant Information</title>
     <style>
-        @font-face {
-            font-family: 'Poppins';
-            src: url('{{ public_path('fonts/Poppins/Poppins-Regular.ttf') }}') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'Poppins';
-            src: url('{{ public_path('fonts/Poppins/Poppins-Bold.ttf') }}') format('truetype');
-            font-weight: bold;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'old-english-text';
-            src: url('{{ public_path('fonts/old-english-text-mt.ttf') }}') format('truetype');
-            font-weight: bold;
-            font-style: normal;
-        }
-
+        /* Use system fonts or web-safe fonts instead of local fonts */
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             line-height: 1.2;
             margin: 0;
             padding: 0;
@@ -61,14 +41,14 @@
         }
 
         .school-address {
-            font-family: 'Poppins', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 14px;
             color: #333;
             margin-bottom: 5px;
         }
 
         .document-title {
-            font-family: 'Poppins', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 16px;
             font-weight: bold;
             margin-top: 15px;

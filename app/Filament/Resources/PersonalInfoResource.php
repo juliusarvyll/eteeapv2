@@ -22,6 +22,9 @@ use Filament\Actions\Action;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Webklex\PDFMerger\Facades\PDFMergerFacade as PDFMerger;
+use Carbon\Carbon;
+use Filament\Widgets\Widget;
+use App\Services\ApplicantPdfService;
 
 class PersonalInfoResource extends Resource
 {
@@ -33,11 +36,45 @@ class PersonalInfoResource extends Resource
 
     protected static ?string $modelLabel = 'Applicant Information';
 
+    // Constants for alert thresholds
+    public const WARNING_THRESHOLD = 5; // 5 days
+    public const CRITICAL_THRESHOLD = 5; // More than 5 days
+
     protected static function boot()
     {
         parent::boot();
 
         static::deleteDraftApplications();
+    }
+
+    // Method to calculate days since creation
+    public static function getDaysPending($createdAt)
+    {
+        return Carbon::parse($createdAt)->diffInDays(Carbon::now());
+    }
+
+    // Method to determine alert status based on days pending
+    public static function getAlertStatus($createdAt)
+    {
+        $daysPending = self::getDaysPending($createdAt);
+
+        if ($daysPending > self::CRITICAL_THRESHOLD) {
+            return 'critical';
+        } elseif ($daysPending == self::WARNING_THRESHOLD) {
+            return 'warning';
+        } else {
+            return 'normal';
+        }
+    }
+
+    // Method to get alert color based on status
+    public static function getAlertColor($status)
+    {
+        return match ($status) {
+            'warning' => 'warning',
+            'critical' => 'danger',
+            default => 'success',
+        };
     }
 
     public static function form(Form $form): Form
@@ -371,6 +408,20 @@ class PersonalInfoResource extends Resource
                     ->label('Last Name')
                     ->searchable(),
 
+                // Days Pending Column with color coding
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Days Pending')
+                    ->formatStateUsing(function ($state) {
+                        $daysPending = self::getDaysPending($state);
+                        return $daysPending . ' days';
+                    })
+                    ->badge()
+                    ->color(function ($state) {
+                        $alertStatus = self::getAlertStatus($state);
+                        return self::getAlertColor($alertStatus);
+                    })
+                    ->sortable(),
+
                 Tables\Columns\SelectColumn::make('status')
                     ->label('Status')
                     ->options([
@@ -383,15 +434,67 @@ class PersonalInfoResource extends Resource
                     ->searchable(),
             ])
             ->filters([
-                //
+                // Filter for applications by age
+                Tables\Filters\Filter::make('pending_priority')
+                    ->form([
+                        Forms\Components\Select::make('priority')
+                            ->options([
+                                'warning' => 'Warning (5 days)',
+                                'critical' => 'Critical (> 5 days)',
+                                'all_pending' => 'All Pending',
+                            ])
+                            ->placeholder('Select Priority')
+                            ->default('all_pending'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!$data['priority'] || $data['priority'] === 'all_pending') {
+                            return $query->where('status', 'pending');
+                        }
+
+                        if ($data['priority'] === 'warning') {
+                            $date = Carbon::now()->subDays(self::WARNING_THRESHOLD);
+                            return $query->where('status', 'pending')
+                                ->whereDate('created_at', $date->toDateString());
+                        }
+
+                        if ($data['priority'] === 'critical') {
+                            $date = Carbon::now()->subDays(self::CRITICAL_THRESHOLD);
+                            return $query->where('status', 'pending')
+                                ->whereDate('created_at', '<', $date->toDateString());
+                        }
+
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (!$data['priority'] || $data['priority'] === 'all_pending') {
+                            return null;
+                        }
+
+                        return 'Priority: ' . match ($data['priority']) {
+                            'warning' => 'Warning',
+                            'critical' => 'Critical',
+                            default => null,
+                        };
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\Action::make('export_pdf')
-                    ->label('Export PDF')
+
+                // Detailed PDF Export Action
+                Tables\Actions\Action::make('export_detailed_pdf')
+                    ->label('Export Detailed PDF')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->url(fn ($record) => route('applicant.pdf', ['record' => $record->applicant_id]))
-                    ->openUrlInNewTab(),
+                    ->color('success')
+                    ->action(function (PersonalInfo $record) {
+                        $pdfService = app(ApplicantPdfService::class);
+                        $pdf = $pdfService->generateSingleApplicantPdf($record);
+
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            "applicant_{$record->applicant_id}_detailed.pdf"
+                        );
+                    }),
+
                 Tables\Actions\Action::make('sendEmail')
                     ->label('Send Email')
                     ->icon('heroicon-o-envelope')
@@ -439,12 +542,123 @@ class PersonalInfoResource extends Resource
                                 ->send();
                         }
                     }),
+                // New action to send reminder email for pending applications
+                Tables\Actions\Action::make('sendReminderEmail')
+                    ->label('Send Reminder')
+                    ->icon('heroicon-o-bell')
+                    ->color(fn ($record) => self::getAlertColor(self::getAlertStatus($record->created_at)))
+                    ->hidden(fn ($record) => $record->status !== 'pending')
+                    ->form([
+                        Forms\Components\TextInput::make('subject')
+                            ->required()
+                            ->label('Reminder Subject')
+                            ->default(function (PersonalInfo $record) {
+                                $status = self::getAlertStatus($record->created_at);
+                                $prefix = $status === 'critical' ? 'URGENT: ' : '';
+                                return $prefix . 'Follow-up on Your Pending Application';
+                            }),
+                        Forms\Components\RichEditor::make('message')
+                            ->required()
+                            ->label('Reminder Message')
+                            ->default(function (PersonalInfo $record) {
+                                $daysPending = self::getDaysPending($record->created_at);
+                                return "Dear {$record->firstName} {$record->lastName},\n\nYour application has been pending for {$daysPending} days. Please update your information or contact our office for assistance.\n\nBest regards,\nAdmissions Office";
+                            }),
+                    ])
+                    ->action(function (array $data, PersonalInfo $record) {
+                        // Same email sending logic as above
+                        if (empty($record->email)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Email not found')
+                                ->body('This applicant does not have an email address.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        try {
+                            \Mail::to($record->email)
+                                ->send(new \App\Mail\ApplicantMail(
+                                    $data['subject'],
+                                    $data['message'],
+                                    $record
+                                ));
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Reminder email sent successfully')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Failed to send reminder email')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    // Bulk Export PDF Action
+                    Tables\Actions\BulkAction::make('export_bulk_pdf')
+                        ->label('Export Bulk PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('success')
+                        ->action(function (Collection $records) {
+                            $pdfService = app(ApplicantPdfService::class);
+                            $pdf = $pdfService->generateBulkApplicantsPdf($records);
+
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                "applicants_bulk_" . date('Y-m-d') . ".pdf"
+                            );
+                        }),
+
+                    // Bulk Reminder Action
+                    Tables\Actions\BulkAction::make('sendBulkReminders')
+                        ->label('Send Bulk Reminders')
+                        ->icon('heroicon-o-bell')
+                        ->action(function ($records) {
+                            $sent = 0;
+                            $failed = 0;
+
+                            foreach ($records as $record) {
+                                if ($record->status !== 'pending' || empty($record->email)) {
+                                    $failed++;
+                                    continue;
+                                }
+
+                                $status = self::getAlertStatus($record->created_at);
+                                $prefix = $status === 'critical' ? 'URGENT: ' : '';
+                                $subject = $prefix . 'Follow-up on Your Pending Application';
+
+                                $daysPending = self::getDaysPending($record->created_at);
+                                $message = "Dear {$record->firstName} {$record->lastName},\n\nYour application has been pending for {$daysPending} days. Please update your information or contact our office for assistance.\n\nBest regards,\nAdmissions Office";
+
+                                try {
+                                    \Mail::to($record->email)
+                                        ->send(new \App\Mail\ApplicantMail(
+                                            $subject,
+                                            $message,
+                                            $record
+                                        ));
+                                    $sent++;
+                                } catch (\Exception $e) {
+                                    $failed++;
+                                    Log::error("Failed to send reminder to {$record->email}: " . $e->getMessage());
+                                }
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title("Reminders sent: {$sent}, Failed: {$failed}")
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ])
+            ->defaultSort('created_at', 'desc')
             ->searchable();
     }
 

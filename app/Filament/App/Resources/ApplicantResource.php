@@ -73,23 +73,19 @@ class ApplicantResource extends Resource
                     ->counts('subjects')
                     ->badge(),
             ])
+            ->expandable(function(PersonalInfo $record) {
+                $subjects = $record->subjects;
+                if ($subjects->isEmpty()) {
+                    return null; // Don't show expand button for records with no subjects
+                }
+
+                return view('filament.tables.expandable-subjects', [
+                    'subjects' => $subjects,
+                    'courseName' => $subjects->first()?->course_name ?? 'No course assigned',
+                    'totalUnits' => $subjects->sum('units'),
+                ]);
+            })
             ->actions([
-                // Add a view subjects action
-                Tables\Actions\Action::make('viewSubjects')
-                    ->label('View Subjects')
-                    ->icon('heroicon-o-academic-cap')
-                    ->modalHeading(fn (PersonalInfo $record) => "Subjects for {$record->firstName} {$record->lastName}")
-                    ->modalContent(function (PersonalInfo $record): View {
-                        $subjects = $record->subjects;
-
-                        return view('filament.tables.expandable-subjects', [
-                            'subjects' => $subjects,
-                            'courseName' => $subjects->first()?->course_name ?? 'No course assigned',
-                            'totalUnits' => $subjects->sum('units'),
-                        ]);
-                    })
-                    ->visible(fn (PersonalInfo $record) => $record->subjects->count() > 0),
-
                 Tables\Actions\Action::make('generate_pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')

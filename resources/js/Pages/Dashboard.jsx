@@ -235,6 +235,37 @@ export default function MultiStepForm() {
         }
     };
 
+    const handlePrevious = async () => {
+        setLoading(true);
+        try {
+            // Save current step data before going back
+            const stepData = getStepData(currentStep);
+
+            const config = {
+                headers: {
+                    'Content-Type': (currentStep === 1 || currentStep === 3 || currentStep === 4 || currentStep === 5 || currentStep === 6 || currentStep === 7 || currentStep === 8)
+                        ? 'multipart/form-data'
+                        : 'application/json',
+                },
+            };
+
+            // Optional: Save current step data before navigating back
+            await axios.post(
+                `/application/step/${currentStep}`,
+                stepData,
+                config
+            );
+
+            setCurrentStep((prev) => prev - 1);
+        } catch (error) {
+            console.error('Error saving data before going back:', error);
+            // Still navigate back even if saving fails
+            setCurrentStep((prev) => prev - 1);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Helper function to get relevant data for each step
     const getStepData = (step) => {
         switch (step) {
@@ -496,10 +527,6 @@ export default function MultiStepForm() {
         }
     };
 
-    const handlePrevious = () => {
-        setCurrentStep((prev) => prev - 1);
-    };
-
     const handleSubmit = async (e) => {
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
@@ -712,8 +739,20 @@ export default function MultiStepForm() {
                                                 <SecondaryButton
                                                     type="button"
                                                     onClick={handlePrevious}
+                                                    disabled={loading}
+                                                    className={loading ? "opacity-75 cursor-not-allowed" : ""}
                                                 >
-                                                    Previous
+                                                    {loading ? (
+                                                        <div className="flex items-center">
+                                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Processing...
+                                                        </div>
+                                                    ) : (
+                                                        "Previous"
+                                                    )}
                                                 </SecondaryButton>
                                             )}
 
@@ -722,8 +761,20 @@ export default function MultiStepForm() {
                                                     <PrimaryButton
                                                         type="button"
                                                         onClick={handleNext}
+                                                        disabled={loading}
+                                                        className={loading ? "opacity-75 cursor-not-allowed" : ""}
                                                     >
-                                                        Next
+                                                        {loading ? (
+                                                            <div className="flex items-center">
+                                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                </svg>
+                                                                Saving...
+                                                            </div>
+                                                        ) : (
+                                                            "Next"
+                                                        )}
                                                     </PrimaryButton>
                                                 ) : (
                                                     <div className="hidden"></div>
